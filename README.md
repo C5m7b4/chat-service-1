@@ -284,4 +284,162 @@ then we need to add the alias to the package.json. add this to the bottom of the
 
 now when we run docker-compose up we should get a console message 'DB connection established'
 
+## migrations
+
+******************************************
+
+cd into users_service and create a file calle ormconfig.json
+
+```js
+{
+  "cli":{
+    "migrationsDir":"src/db/migrations"
+  },
+  "entities": ["src/db/entities/*.ts"],
+  "logging": false,
+  "migrations": ["src/db/migrations/*.ts"],
+  "synchronize": true,
+  "type": "mysql",
+  "url":"mysql://root:password@users-service-db/db"
+}
+```
+
+for now, we are going to downgrade our version of typeorm. I will look into updating this when I get a chance 😡
+
+```js
+yarn add typeorm@0.2.29
+```
+
+then we are going to run this command
+
+```js
+yarn typeorm migration:create -n users
+```
+
+this should generate a migrations folder inside of your db folder:
+
+![alt migrations](images/010-migrations.png)
+
+inside of this file it should look like this:
+
+```js
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
+
+export class Users1666988136226 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.createTable(
+      new Table({
+        columns: [
+          {
+            isPrimary: true,
+            length: '36',
+            name: 'id',
+            type: 'char',
+          },
+          {
+            length: '25',
+            name: 'username',
+            type: 'varchar',
+          },
+          {
+            length: '60',
+            name: 'passwordHash',
+            type: 'char',
+          },
+          {
+            default: 'now()',
+            name: 'createdAt',
+            type: 'timestamp',
+          },
+        ],
+        name: 'users',
+      })
+    );
+
+    await queryRunner.createIndex(
+      'users',
+      new TableIndex({
+        columnNames: ['username'],
+        isUnique: true,
+        name: 'unique_username',
+      })
+    );
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropTable('users');
+  }
+}
+
+```
+
+now we are going to add two scripts to our package.json
+
+```js
+    "db:migrate":"ts-node ./node_modules/typeorm/cli.js migration:run",
+    "db:migrate:undo":"ts-node ./node_modules/typeorm/cli.js migration:revert"
+```
+
+now let's spin everything up with docker-compose up and we will connect to the container and run our first migration. to get into our running containers, we are going to use this command:
+
+```js
+docker-compose exec users-service bash
+```
+
+now you should have a prompt and if you run an ls command you should see this:
+
+![alt contents](images/011-contents.png)
+
+
+now we can run the command
+
+```js
+yarn db:migrate
+```
+
+there is going to be a bunch of stuff printed out to your bash. It should look familiar if you are familiar with sql syntax and creating tables. So, now if we go back into phpmyadmin, we should see our table. To get back to phpmyadmin go to localhost:7300, select the users-service and expand the db to see the users table
+
+![alt users](images/012-users-table.png)
+
+create a folder called entities inside the db folder and create a file called User.ts
+the contents should look like this
+
+```js
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+
+@Entity('users')
+export default class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  username: string;
+
+  @Column({ select: false })
+  passwordHash: string;
+
+  @CreateDateColumn()
+  createdAt: string;
+}
+
+```
+
+now go into your connection.ts file and import that entity
+
+```js
+import User from './entities/User';
+```
+
+then add this line right above type: 'mysql
+
+```js
+entities: [User],
+```
+
+you can check the repo file if you are having trouble with this
 

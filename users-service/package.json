@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "license": "MIT",
   "scripts": {
-    "watch": "ts-node-dev --respawn index.dev.ts"
+    "watch": "ts-node-dev --respawn index.dev.ts",
+    "db:migrate":"ts-node ./node_modules/typeorm/cli.js migration:run",
+    "db:migrate:undo":"ts-node ./node_modules/typeorm/cli.js migration:revert"
   },
   "devDependencies": {
     "@types/config": "^3.3.0",
@@ -17,9 +19,9 @@
     "config": "^3.3.8",
     "mysql2": "^2.3.3",
     "reflect-metadata": "^0.1.13",
-    "typeorm": "^0.3.10"
+    "typeorm": "0.2.29"
   },
-  "_moduleAliases":{
-    "#root":"./src"
+  "_moduleAliases": {
+    "#root": "./src"
   }
 }
