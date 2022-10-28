@@ -1,0 +1,15 @@
+{
+  "configurations": [
+    {
+      "name": "Debug usersService",
+      "type": "docker",
+      "request": "launch",
+      "preLaunchTask": "docker-compose-users-service",
+      "platform": "node",
+      "node": {
+        "package": "${workspaceFolder}/users-service/package.json",
+        "localRoot": "${workspaceFolder}/users-service"
+      }
+    }
+  ]
+}
