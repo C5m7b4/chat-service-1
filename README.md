@@ -62,33 +62,33 @@ take the contents we have so far and copy them into the other services folders a
 
 then go into each folder and run yarn to install the node_modules
 
-in the phpmyadmin folder create a file called config.user.php and it should look like this:
+in the phpmyadmin folder create a file called config.user.inc.php and it should look like this:
 
 ```js
 <?php
   $i++;
-  $cfg['Servers'][$i]['verbose'] = 'chat-service'
-  $cfg['Servers'][$i]['host'] = 'chat-service_db'
-  $cfg['Servers'][$i]['port'] = ''
-  $cfg['Servers'][$i]['socket'] = ''
-  $cfg['Servers'][$i]['connection_type'] = 'tcp'
-  $cfg['Servers'][$i]['extension'] = 'mysqli'
-  $cfg['Servers'][$i]['auth_type'] = 'config'
-  $cfg['Servers'][$i]['user'] = 'root'
-  $cfg['Servers'][$i]['password'] = 'password'
-  $cfg['Servers'][$i]['AllowNoPassword'] = false
+  $cfg['Servers'][$i]['verbose'] = 'chat-service';
+  $cfg['Servers'][$i]['host'] = 'chat-service-db';
+  $cfg['Servers'][$i]['port'] = '';
+  $cfg['Servers'][$i]['socket'] = '';
+  $cfg['Servers'][$i]['connect_type'] = 'tcp';
+  $cfg['Servers'][$i]['extension'] = 'mysqli';
+  $cfg['Servers'][$i]['auth_type'] = 'config';
+  $cfg['Servers'][$i]['user'] = 'root';
+  $cfg['Servers'][$i]['password'] = 'password';
+  $cfg['Servers'][$i]['AllowNoPassword'] = false;
 
   $i++;
-  $cfg['Servers'][$i]['verbose'] = 'users-service'
-  $cfg['Servers'][$i]['host'] = 'users-service_db'
-  $cfg['Servers'][$i]['port'] = ''
-  $cfg['Servers'][$i]['socket'] = ''
-  $cfg['Servers'][$i]['connection_type'] = 'tcp'
-  $cfg['Servers'][$i]['extension'] = 'mysqli'
-  $cfg['Servers'][$i]['auth_type'] = 'config'
-  $cfg['Servers'][$i]['user'] = 'root'
-  $cfg['Servers'][$i]['password'] = 'password'
-  $cfg['Servers'][$i]['AllowNoPassword'] = false
+  $cfg['Servers'][$i]['verbose'] = 'users-service';
+  $cfg['Servers'][$i]['host'] = 'users-service-db';
+  $cfg['Servers'][$i]['port'] = '';
+  $cfg['Servers'][$i]['socket'] = '';
+  $cfg['Servers'][$i]['connect_type'] = 'tcp';
+  $cfg['Servers'][$i]['extension'] = 'mysqli';
+  $cfg['Servers'][$i]['auth_type'] = 'config';
+  $cfg['Servers'][$i]['user'] = 'root';
+  $cfg['Servers'][$i]['password'] = 'password';
+  $cfg['Servers'][$i]['AllowNoPassword'] = false;
 ```
 
 this will actually be really cool. it's the only php that we will see though!!
@@ -111,7 +111,7 @@ services:
       - chat-service
       - users-service
     ports:
-      - 7000:7000
+      - "7000:7000"
     volumes:
       - ./api-gateway:/opt/app 
 
@@ -122,22 +122,22 @@ services:
     depends_on:
       - chat-service-db
     ports:
-      - 7100:7100
+      - "7100:7100"
     volumes:
       - ./chat-service:/opt/app    
 
   chat-service-db:
     environment:
-      - MYSQL_ROOT_PASSWORD=MYSQL_ROOT_PASSWORD
-      - MYSQL_DATABASE=serice_db
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=db
     image: mysql:5.7.20
     ports:
-      - 7200:7200
+      - "7200:3306"
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     ports:
-      - 7300:7300
+      - "7300:80"
     volumes:
       - ./phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php
 
@@ -148,17 +148,17 @@ services:
     depends_on:
       - users-service-db
     ports:
-      - 7101:7101
+      - "7101:7101"
     volumes:
       - ./users-service:/opt/app    
 
   users-service-db:
     environment:
-      - MYSQL_ROOT_PASSWORD=MYSQL_ROOT_PASSWORD
-      - MYSQL_DATABASE=serice_db
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=db
     image: mysql:5.7.20
     ports:
-      - 7201:7201
+      - "7201:3306"
 
 
 ```
@@ -187,4 +187,14 @@ to actually get them to do away
 docker-compose down
 ```
 
-now you should be clean and ready to proceeed.
+now you should be clean and ready to proceeed. If you have everything setup correctly, you should be able to go to localhost:7300 and see both of your databases:
+
+![alt phpmyadmin](images/07-phpmyadmin.png)
+
+this is a neat way of working with multiple databases
+
+just make sure that you can see the db database on both
+
+![alt chat-service-db](images/08-chat-service-db.png)
+![alt users-service-db](images/09-users-service-db.png)
+
