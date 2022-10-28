@@ -198,3 +198,86 @@ just make sure that you can see the db database on both
 ![alt chat-service-db](images/08-chat-service-db.png)
 ![alt users-service-db](images/09-users-service-db.png)
 
+## branch 2
+
+go into users_service folder and let's install some dependencies
+
+```js
+yarn add config mysql2 reflect-metadata typeorm
+yarn add -D @types/config ts-node
+```
+
+next up we are going to create a db folder in the src folder of the users-service and create a file called connection.ts
+
+it should look like this:
+
+```js
+import config from 'config';
+import { createConnection, Connection } from 'typeorm';
+
+let connection: Connection;
+
+export const initConnection = async () => {
+  connection = await createConnection({
+    type: 'mysql',
+    url: <string>config.get('USERS_SERVICE_DB_URL'),
+  });
+};
+
+const getConnection = () => connection;
+
+export default getConnection;
+
+```
+
+now lets create a config folder in the root of users-service and add a default.ts file
+
+```js
+export const USERS_SERVICE_DB_URL = 'mysql:root:password@users-service-db/db';
+
+```
+
+this will basically be the connection string to mysql
+
+then we are going to create another file in the root of the users-service called tsconfig.json
+
+```js
+{
+  "compilerOptions": {
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "CommonJS",
+    "paths":{
+      "#root/*":["./src/*"]
+    },
+    "skipLibCheck": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "target": "es5"
+  }
+}
+```
+
+then we are going to come back over to our index.ts inside of the src folder inside of users-service
+
+```js
+import 'reflect-metadata';
+
+import { initConnection } from '#root/db/connection';
+
+initConnection().then(() => {
+  console.log('DB connection established');
+});
+
+console.log('users_service says hi');
+```
+
+then we need to add the alias to the package.json. add this to the bottom of the package.json
+
+```js
+  "_moduleAliases":{
+    "#root":"./src"
+  }
+```
