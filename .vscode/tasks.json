@@ -1,0 +1,20 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "docker-compose-users-service",
+			"type": "docker-compose",
+			"dockerCompose": {
+				"up": {
+					"detached": false,
+					"build": true,
+					"services": ["users-service", "users-service-db"]
+				},
+				"files":[
+					"${workspaceFolder}/docker-compose.yml",
+					"${workspaceFolder}/docker-compose.debug.yml"
+				]
+			}
+		},
+	]
+}

@@ -233,7 +233,7 @@ export default getConnection;
 now lets create a config folder in the root of users-service and add a default.ts file
 
 ```js
-export const USERS_SERVICE_DB_URL = 'mysql:root:password@users-service-db/db';
+export const USERS_SERVICE_DB_URL = 'mysql://root:password@users-service-db/db';
 
 ```
 
@@ -281,3 +281,7 @@ then we need to add the alias to the package.json. add this to the bottom of the
     "#root":"./src"
   }
 ```
+
+now when we run docker-compose up we should get a console message 'DB connection established'
+
+

@@ -1,0 +1,27 @@
+version: '3.4'
+
+services:
+  users-service-debug:
+    image: microserviceschatdemousersservice
+    build:
+      context: "."
+      dockerfile: "./users-service/Dockerfile"
+    environment:
+      NODE_ENV: development
+      DEBUG: 'true'
+    depends_on:
+      - users-service-db
+    ports:
+      - 7101:7101
+      - 9229:9229
+    volumes:
+      - ./users-service:/opt/app  
+    command: ["node", "--inspect=0.0.0.0:9229", "index.dev.ts"] 
+
+  users-service-db:
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=db
+    image: mysql:5.7.20
+    ports:
+      - "7201:3306"
