@@ -443,3 +443,151 @@ entities: [User],
 
 you can check the repo file if you are having trouble with this
 
+## start of video 3 from series
+
+```js
+yarn add express cors
+yarn add -D @types/express @types/cors
+```
+
+then create a folder inside of src called server and create a startServer.ts file inside of that. Then create a helpers folder inside of src and create a filed called accessEnv.ts
+the contents should look like this:
+
+```js
+const cache: { [key: string]: string } = {};
+
+const accessEnv = (key: string, defaultValue: string) => {
+  if (!(key in process.env) || typeof process.env[key] === undefined) {
+    if (defaultValue) return defaultValue;
+    throw new Error(`${key} not found in process.env`);
+  }
+
+  if (!(key in cache)) {
+    cache[key] = <string>process.env[key];
+  }
+
+  return cache[key];
+};
+
+export default accessEnv;
+
+```
+
+now we will go back to start server and make it look like this
+
+```js
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import express, { NextFunction, Request, Response } from 'express';
+import accessEnv from '#root/helpers/accessEnv';
+
+const PORT = parseInt(accessEnv('PORT', '7101'), 10);
+
+const startServer = () => {
+  const app = express();
+
+  app.use(bodyParser.json());
+
+  app.use(
+    cors({
+      origin: (origin, cb) => cb(null, true),
+      credentials: true,
+    })
+  );
+
+  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    return res.status(500).json({ message: err.message });
+  });
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.info(`Users service is running on port ${PORT}`);
+  });
+};
+
+export default startServer;
+
+```
+
+now let's go back to index.ts and make it look like this:
+
+```js
+import 'reflect-metadata';
+
+import { initConnection } from '#root/db/connection';
+import startServer from '#root/server/startServer';
+
+initConnection().then(() => {
+  startServer();
+});
+
+```
+
+now let's do a docker-compose up and we should see this:
+
+![alt users-service](images/013-users-service.png)
+
+you can go to localhost:7101 and you should see this:
+
+![alt cannot-get](images/014-cannot-get.png)
+
+now let's create a file in the server director called routes.ts
+it should look like this:
+
+```js
+import { Express } from 'express';
+import { getRepository } from 'typeorm';
+import User from '#root/db/entities/User';
+
+const setupRoutes = (app: Express) => {
+  const userRepository = getRepository(User);
+
+  app.get('/users/:userId', async (req, res, next) => {
+    try {
+      const user = await userRepository.findOne(req.params.userId);
+
+      if (!user) return next(new Error('Invalid user ID'));
+
+      return res.json(user);
+    } catch (e) {
+      return next(e);
+    }
+  });
+};
+
+export default setupRoutes;
+
+```
+
+then we are going to import that into startServer
+
+```js
+import setupRoutes from './routes';
+```
+
+now in startServer we need to add this line right above our error handler code:
+
+```js
+setupRoutes(app)
+```
+
+now run press ctrl-c on the command line to kill everything and run a docker-compose down. then we are going to modify our package.json a little bit
+
+```js
+"watch": "ts-node-dev --poll --respawn index.dev.ts",
+```
+
+then run docker-compose-up and let's test things out. You may have to go back to the migrations and re-run your migration if you have been using docker-compose down becuase the users table may not be there anymore.
+
+so if we go to localhost:7101/users/test we will see this:
+
+![alt user-not found](images/015-user-not-found.png)
+
+so let's manually enter a user into phpmyadmin first, but we are going to need a hashed password so go to [bcrypt generator](https://bcrypt-generator.com/) and just put in password and hash that and use that for the passwordHash when you create a fake user. then go to browse and copy the id so we can use that in the url
+
+![alt password](images/016-password.png)
+
+now we can test the url again
+
+![alt user](images/017-user.png)
+
+
