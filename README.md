@@ -445,6 +445,8 @@ you can check the repo file if you are having trouble with this
 
 ## start of video 3 from series
 
+******************************************
+
 ```js
 yarn add express cors
 yarn add -D @types/express @types/cors
@@ -590,4 +592,276 @@ now we can test the url again
 
 ![alt user](images/017-user.png)
 
+## Start of video 4 from series
 
+******************************************
+
+now we are going to create a migration for our user sessions so then we can start to work on authentication. cd back into users-service and type this command
+
+```js
+yarn typeorm migration:create -n userSessions
+```
+
+that should give us a new file in the migrations folder which we should make look like this:
+
+```js
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+} from 'typeorm';
+
+export class UserSessions1666993435523 implements MigrationInterface {
+  public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.createTable(
+      new Table({
+        columns: [
+          {
+            isPrimary: true,
+            length: '36',
+            name: 'id',
+            type: 'char',
+          },
+          {
+            length: '36',
+            name: 'userId',
+            type: 'char',
+          },
+          {
+            default: 'now()',
+            name: 'createdAt',
+            type: 'timestamp',
+          },
+          {
+            name: 'expiresAt',
+            type: 'datetime',
+          },
+        ],
+        name: 'userSessions',
+      })
+    );
+
+    await queryRunner.createForeignKey(
+      'userSessions',
+      new TableForeignKey({
+        columnNames: ['userId'],
+        referencedColumnNames: ['id'],
+        referencedTableName: 'users',
+      })
+    );
+  }
+
+  public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.dropTable('userSessions');
+  }
+}
+
+```
+
+now let's start our docker-compose up and we will run this command
+
+```js
+docker-compose exec users-service bash
+```
+
+once your in, run this command
+
+```js
+yarn db:migrate
+```
+
+now we should be able to go over to phpmyadmin and see our new table
+
+![alt usersSession](images/018-usersSessions.png)
+
+now go into the entities folder and create a file called UserSession.ts
+
+```js
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+
+@Entity('userSessions')
+export default class UserSession {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column('char', { length: 36 })
+  userId: string;
+
+  @CreateDateColumn()
+  createdAt: string;
+
+  @Column('datetime')
+  expiresAt: string;
+}
+
+```
+
+now import UserSession into the connection.ts like so
+
+```js
+import UserSession from './entities/UserSession'
+```
+
+and add it to the array inside of this file
+
+now create a file called passwordCompareSync.ts inside of the helpers folder
+
+let install bcryptjs so cd into the users-service folder and run
+
+```js
+yarn add bcryptjs
+yarn add -D @types/bcryptjs
+yarn add dayjs
+yarn add uuid
+yarn add -D @types/uuid
+````
+
+inside passwordCompareSync, make it look like this:
+
+```js
+import bcrypt from 'bcryptjs';
+
+const passwordCompareSync = (passwordToTest: string, passwordHash: string) =>
+  bcrypt.compareSync(passwordToTest, passwordHash);
+
+export default passwordCompareSync;
+
+```
+
+now import that into our routes
+
+```js
+import passwordCompareSync from '#root/helpers/passwordCompareSync'
+```
+
+let's go into default.ts and paste in this line:
+
+```js
+const USER_SESSION_EXPIRY_HOURS=1
+```
+
+now add these two imports into the routes.ts file
+
+```js
+import config from 'config'
+import dayjs from 'dayjs';
+```
+
+and then at the top of the routes.ts file add this line
+
+```js
+const USER_SESSION_EXPIRY_HOURS = <number>config.get('USER_SESSION_EXPIRY_HOURS')
+```
+
+then in the helpers folder create a file called generateUUID.ts
+
+```js
+import { v4 as uuidv4 } from 'uuid';
+
+const generateUUID = () => uuidv4();
+
+export default generateUUID;
+
+```
+
+finally back to our routes.ts file
+the imports should now look like this:
+
+```js
+import config from 'config';
+import dayjs from 'dayjs';
+import { Express } from 'express';
+import { getConnection, getRepository } from 'typeorm';
+
+import User from '#root/db/entities/User';
+import UserSession from '#root/db/entities/UserSession';
+import passwordCompareSync from '#root/helpers/passwordCompareSync';
+import generateUUID from '#root/helpers/generateUUID';
+```
+
+we are going to add this right after we generate the express app
+
+```js
+  const connection = getConnection();
+```
+
+and then we are going to add a new route
+
+```js
+app.post('/sessions', async (req, res, next) => {
+    if (!req.body.username || !req.body.password) {
+      return next(new Error('Invalid body'));
+    }
+
+    try {
+      const user = await userRepository.findOne(
+        { username: req.body.username },
+        {
+          select: ['id', 'passwordHash'],
+        }
+      );
+
+      if (!user) return next(new Error('Invalid username'));
+
+      if (!passwordCompareSync(req.body.password, user.passwordHash)) {
+        return next(new Error('invalid password'));
+      }
+
+      const expiresAt = dayjs()
+        .add(USER_SESSION_EXPIRY_HOURS, 'hour')
+        .toISOString();
+
+      const sessionToken = generateUUID();
+
+      const userSession = {
+        expiresAt,
+        id: sessionToken,
+        userId: user.id,
+      };
+
+      await connection
+        .createQueryBuilder()
+        .insert()
+        .into(UserSession)
+        .values(userSession);
+
+      return res.json(userSession);
+    } catch (error) {
+      return next(error);
+    }
+  });
+```
+
+now we can use either insomnia or postman to test our new post endpoint. I'm going to use insomnia so here is how this works:
+
+![alt insomnia](images/019-insomnia.png)
+
+click on the create button
+
+![alt create](images/020-create.png)
+![alt require-collection](images/021-request-collection.png)
+![alt create-collection](images/023-create-collection.png)
+
+now we are going to create our post request
+![alt create-request](images/024-create-request.png)
+![alt json-body](images/025-json-body.png)
+
+we also need to run docker-compose up
+
+now if we run our post request, we should see this
+![alt-sessions](images/026-sessions.png)
+
+you can also test out sending an empty body
+![alt empty-body](images/027-empty-body.png)
+
+and a wrong password
+![alt invalid-password](images/028-invalid-password.png)
+
+and an invalid username
+![alt invalid-username](images/029-invalid-username.png)
