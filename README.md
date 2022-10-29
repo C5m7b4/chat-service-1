@@ -1702,3 +1702,47 @@ now let's look at some problems:
 
 we are exposing the users internal id to the frontend and we probably don't want to do that
 we can go into the schema and remove the id from the UserSession type
+
+in adapters/UsersService, let change the User interface
+
+```js
+export interface User {
+  createdAt: string;
+  id: string;
+  username: string;
+}
+```
+
+so now in resolvers/UserSession.ts, we can add this
+
+```js
+  id: async (userSession: UserSessionType) => {
+    const user = await UsersService.fetchUser({ userId: userSession.userId });
+    return user?.username;
+  },
+```
+
+![alt create-session](images/052-create-session.png)
+
+now let's go into resolvers/UserSession and comment out the id method and remove the id in the schema from the UserSession, so now you will see that if you try to get the id, graphql will throw an error:
+
+![alt no-id](images/053-no-id.png)
+
+but we can do something like this:
+
+![alt query-user](images/054-query-user.png)
+
+now we are going to do something that i might argue with myself about, but we are removing the id and changing the User in the schema
+
+```js
+  type User {
+    username: ID!
+  }
+```
+
+now we'll notice that our graphql query will not longer work, so we need to modify it a little bit
+
+![alt query-bob](images/055-query-bob.png)
+
+
+
