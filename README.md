@@ -5,7 +5,7 @@ all of this work came from this [youtube playlist](https://www.youtube.com/watch
 Here is what our folder structure is going to look like:
 
 ![alt folder-structure](images/01_folder_structure.png)
- 
+
 We are going to start with the api-gateway and add a Dockerfile like so:
 
  ```js
@@ -33,7 +33,6 @@ then let's add our start script
     "watch": "ts-node-dev --respawn index.dev.ts"
   },
 ```
-
 
 We'll add that file index.d.ts in the root of our api-gateway folder
 
@@ -163,7 +162,7 @@ services:
 
 ```
 
-now you should be able to run the command 
+now you should be able to run the command
 
 ```js
 docker-compose up
@@ -389,7 +388,6 @@ docker-compose exec users-service bash
 now you should have a prompt and if you run an ls command you should see this:
 
 ![alt contents](images/011-contents.png)
-
 
 now we can run the command
 
@@ -865,3 +863,146 @@ and a wrong password
 
 and an invalid username
 ![alt invalid-username](images/029-invalid-username.png)
+
+## branch 7 - Video 5 of the series
+
+******************************************
+
+cd into users-servie and run this
+
+```js
+yarn add lodash.omit
+yarn add -D @types/lodash.omit
+```
+
+back into routes.ts and add this under the previous repository
+
+```js
+const userSessionRepository = getRepository(UserSession)
+```
+
+one bugfix from the previous branch. It looks like our sessions were not getting saved into the mysql database table, so add the execute to this line:
+
+```js
+      await connection
+        .createQueryBuilder()
+        .insert()
+        .into(UserSession)
+        .values(userSession).execute();
+```
+
+now we are going to add a logout/remove session endpoint to routes.ts
+
+```js  app.delete('/sessions/:sessionId', async (req, res, next) => {
+  app.delete('/sessions/:sessionId', async (req, res, next) => {
+    try {
+      const userSession = await userSessionRepository.findOne(
+        req.params.sessionId
+      );
+
+      if (!userSession) return next(new Error('invalid session id'));
+
+      await userSessionRepository.remove(userSession);
+
+      return res.end();
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+```
+
+now to test this out, run docker-compose up, and run the insomnia login endpoint and copy the id
+
+![alt login](images/030-login.png)
+
+now you can also check phpmyadmin to make sure your session is there
+
+![alt session](images/032-session.png)
+
+once you have the id, setup another endpoint like this
+
+![alt no-body](images/031-no-body.png)
+
+run then endpoint and it should look like this
+
+![alt delete](images/033-delete.png)
+
+and now i you go back to phpmyadmin you will see that its gone
+
+![alt empty](images/034-empty.png)
+
+now we are going to create another endpoint to view a users session. it will also be in routes.ts
+
+```js
+  app.get('/sessions/:sessionId', async (req, res, next) => {
+    try {
+      const userSession = await userSessionRepository.findOne(
+        req.params.sessionId
+      );
+
+      if (!userSession) return next(new Error('invalid session id'));
+
+      return res.json(userSession);
+    } catch (error) {
+      return next(error);
+    }
+  });
+```
+
+now after the server restarts. It should restart automatically, you can run the login from insomnia, grab the id again, just like before and create another endpoint for viewing the session
+
+![alt fetch-session](images/035-fetch-session.png)
+
+now let's create an endpoint for signing up new users
+
+now add a file to the helpers folder called hashPassword.ts
+
+```js
+import bcrypt from 'bcryptjs';
+
+const hashPassword = (password: string) =>
+  bcrypt.hashSync(password, bcrypt.genSaltSync(12));
+
+
+export default hashPassword;
+```
+
+now let's import that into routes.ts
+
+now in routes.ts, add this:
+
+```js
+import omit from 'lodash.omit';
+```
+
+```js
+app.post('/users', async (req, res, next) => {
+    try {
+      if (!req.body.username || !req.body.password) {
+        return next(new Error('Invalid body'));
+      }
+
+      const newUser = {
+        id: generateUUID(),
+        passwordHash: hashPassword(req.body.password),
+        username: req.body.username,
+      };
+
+      await connection
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values([newUser])
+        .execute();
+
+      return res.json(omit(newUser, ['passwordHash']));
+    } catch (error) {
+      return next(error);
+    }
+  });
+```
+
+to test go over to insomnia and create an endpoint like this
+
+![alt new-user](images/036-new-user.png)
