@@ -13,7 +13,6 @@ const injectSession = async (
     });
 
     res.locals.userSession = userSession;
-    console.log('userSession injected', userSession);
   }
 
   return next();

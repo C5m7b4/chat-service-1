@@ -1339,3 +1339,147 @@ we get a null because we need to change one setting
 ```  
 
 ![alt good-graph](images/042-good-graph.png)
+
+## branch 10 - Video 8 of series
+
+let's create a file called UserSession.ts inside of the resolvers folder
+
+```js
+import UsersService from '#root/adapters/UsersService';
+import { UserSessionType } from '#root/graphql/types';
+
+const UserSession = {
+  user: async (userSession: UserSessionType) => {
+    return await UsersService.fetchUser({ userId: userSession.userId });
+  },
+};
+
+export default UserSession;
+
+```
+
+let's update the graphql/types.ts file like this:
+
+```js
+import { Request, Response } from 'express';
+
+import { UserSession } from '#root/adapters/UsersService';
+
+export interface ResolverContext {
+  req: Request;
+  res: Response;
+}
+
+export interface UserSessionType extends UserSession {}
+
+```
+
+now let's update the adapters/UsersService.ts like this:
+
+```js
+import config from 'config';
+import got from 'got';
+
+const USERS_SERVICE_URI = <string>config.get('USERS_SERVICE_URI');
+
+export interface User {
+  createdAt: string;
+  expiresAt: string;
+  id: string;
+  userId: string;
+}
+
+export interface UserSession {
+  createdAt: string;
+  expiresAt: string;
+  id: string;
+  userId: string;
+}
+
+export default class UsersService {
+  static async fetchUser({ userId }: { userId: string }): Promise<User | null> {
+    const body = await got.get(`${USERS_SERVICE_URI}/users/${userId}`).json();
+    if (!body) return null;
+    return <User>body;
+  }
+
+  static async fetchUsersSession({
+    sessionId,
+  }: {
+    sessionId: string;
+  }): Promise<UserSession | null> {
+    const body = await got
+      .get(`${USERS_SERVICE_URI}/sessions/${sessionId}`)
+      .json();
+    if (!body) return null;
+    return <UserSession>body;
+  }
+}
+
+```
+
+now run docker-compose up and do a login and grab the userid
+now to test all this, let's create another endpoint in insomnia like this:
+
+![alt get-user](images/043-get-user.png)
+
+we see we dont get an expires at so lets remove that in the adapters/UsersService file
+
+```js
+import config from 'config';
+import got from 'got';
+
+const USERS_SERVICE_URI = <string>config.get('USERS_SERVICE_URI');
+
+export interface User {
+  createdAt: string;
+  id: string;
+  userId: string;
+}
+
+export interface UserSession {
+  createdAt: string;
+  expiresAt: string;
+  id: string;
+  userId: string;
+}
+
+export default class UsersService {
+  static async fetchUser({ userId }: { userId: string }): Promise<User | null> {
+    const body = await got.get(`${USERS_SERVICE_URI}/users/${userId}`).json();
+    if (!body) return null;
+    return <User>body;
+  }
+
+  static async fetchUsersSession({
+    sessionId,
+  }: {
+    sessionId: string;
+  }): Promise<UserSession | null> {
+    const body = await got
+      .get(`${USERS_SERVICE_URI}/sessions/${sessionId}`)
+      .json();
+    if (!body) return null;
+    return <UserSession>body;
+  }
+}
+
+```
+
+now lets go back into resolvers/index.ts and import UserSession
+
+```js
+import * as Query from './Query';
+import UserSession from './UserSession';
+
+const resolvers = { Query, UserSession };
+
+export default resolvers;
+
+
+```
+
+now if we refresh the graphql playground and make it look like this,we should be able to ad the user
+
+![alt graph-user](images/044-graph-user.png)
+
