@@ -1629,3 +1629,76 @@ then if we try to type the password incorrectly, you will see this responds well
 
 ![alt bad-password](images/048-bad-password.png)
 
+## branch 12 - Video 10 of series
+
+let's add the ability to log out using the api-gateway
+
+we'll first add another mutation to our schema.ts file
+
+```js
+    deleteUserSession(me: Boolean!): Boolean!
+```
+
+now in the mutation folder add a file called deleteUserSession.ts
+
+but first lets add this to the Mutation/index.ts file
+
+```js
+export { default as deleteUserSession } from './deleteUserSession';
+```
+
+deleteUserSession.ts
+
+```js
+import UsersService from '#root/adapters/UsersService';
+import { ResolverContext } from '#root/graphql/types';
+
+interface Args {
+  me: boolean;
+}
+
+const deleteUserSessionResolver = async (
+  obj: any,
+  args: Args,
+  context: ResolverContext
+) => {
+  if (args.me !== true) throw new Error('Unsupported argument value');
+
+  const sessionId = context.res.locals.userSession.id;
+
+  await UsersService.deleteUserSession({ sessionId });
+
+  context.res.clearCookie('userSessionId');
+
+  return true;
+};
+
+export default deleteUserSessionResolver;
+
+```
+
+now we need to include deleteUserSession to the adapters/UsersServer.ts file
+
+```js
+  static async deleteUserSession({ sessionId }: { sessionId: string }) {
+    const body = await got
+      .delete(`${USERS_SERVICE_URI}/sessions/${sessionId}`)
+      .json();
+    return body;
+  }
+```
+
+now let's run docker-compose up and test this out. refresh the graphql playground, open the dev tools and go to application/cookies and find our cookie information
+
+![alt cookie](images/049-cookie.png)
+
+run this mutation and notice that our cookie is gone
+
+![alt delete-cookie](images/050-delete-cookie.png)
+
+now let's look at some problems:
+
+![alt create-session](images/051-create-session.png)
+
+we are exposing the users internal id to the frontend and we probably don't want to do that
+we can go into the schema and remove the id from the UserSession type
