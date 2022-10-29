@@ -1006,3 +1006,189 @@ app.post('/users', async (req, res, next) => {
 to test go over to insomnia and create an endpoint like this
 
 ![alt new-user](images/036-new-user.png)
+
+## branch8 - Video 6 of the series
+
+******************************************
+
+now we are going to start working on the api gateway
+
+cd into the api-gateway folder and install these dependencies
+
+```js
+yarn add apollo-server apollo-server-express config cookie-parser cors express got graphql
+yarn add -D @types/config @types/cook
+ie-parser
+```
+
+now in the package.json, we'll setup our alias
+
+```js
+  "_moduleAliases": {
+    "#root":"./src"
+  }
+```
+
+then create a folder called server in the src folder and include a file called startServer.ts
+
+```js
+import express from 'express';
+
+const startServer = () => {
+  const app = express();
+
+  app.listen(7000, '0.0.0.0', () => {
+    console.info(`api gateway is listening on port 7000`);
+  });
+};
+
+export default startServer;
+
+
+```
+
+then in our index.ts file
+
+```js
+import startServer from '#root/server/startServer';
+
+startServer();
+
+```
+
+then let's copy the tsconfig.json from our users_service
+let's also add the --poll to the package.json
+
+```js
+"watch": "ts-node-dev --poll --respawn index.dev.ts"
+```
+
+now let's run docker-compose up and visit localhost:7000
+
+you should just see this:
+
+![alt cannot-get](images/037-cannot-get.png)
+
+then in api-gateway create a folder called config with a default.ts file inside of it
+
+```js
+export const PORT = 7000;
+```
+
+go into the server folder and add a file called formatGraphQLErrors.ts
+
+```js
+import { GraphQLError } from 'graphql';
+
+const formatGraphQLErrors = (error: GraphQLError) => {
+  // @ts-ignore
+  const errorDetails = error.originalError?.response?.body;
+  try {
+    if (errorDetails) return JSON.parse(errorDetails);
+    if (error.message) return error.message;
+  } catch (e) {
+    if (error.message) return error.message;
+
+    return null;
+  }
+};
+
+export default formatGraphQLErrors;
+
+
+now let's create a folder under the src folder called graphql
+now lets create a folder inside of there called resolvers with an index.ts
+for now, it can look like this
+
+```js
+const resolvers = {};
+
+export default resolvers;
+
+```
+
+now create a file in the graphql folder called schema.ts. I know we are all over the place here
+
+```js
+import { gql } from 'apollo-server';
+
+const schema = gql`
+  scalar Date
+
+  type User {
+    id: ID!
+    username: String!
+  }
+
+  type UserSession {
+    createdAt: Date!
+    expiresAt: Date!
+    id: ID!
+    user: User!
+  }
+
+  type Query {
+    userSession(me: Boolean!): UserSession
+  }
+`;
+
+export default schema;
+
+```
+
+now to startServer.ts
+
+```js
+import { ApolloServer } from 'apollo-server-express';
+import config from 'config';
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express from 'express';
+
+import resolvers from '#root/graphql/resolvers';
+import schema from '#root/graphql/schema';
+
+import formatGraphQLErrors from './formatGraphQLErrors';
+
+const PORT = <number>config.get('PORT');
+
+const startServer = () => {
+  const apolloServer = new ApolloServer({
+    context: (a) => a,
+    formatError: formatGraphQLErrors,
+    resolvers,
+    typeDefs: schema,
+  });
+
+  const app = express();
+
+  app.use(cookieParser());
+
+  app.use(
+    cors({
+      credentials: true,
+      origin: (origin, cb) => cb(null, true),
+    })
+  );
+
+  apolloServer.applyMiddleware({ app, cors: false, path: '/graphql' });
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.info(`Api Gateway is listening on port ${PORT}`);
+  });
+};
+
+export default startServer;
+
+```
+
+we are going to have to downgrade apollo and graphql for the time being and we will come back and look at that later 😡
+
+```js
+yarn add apollo-server@2.19.2 apollo-server-express@2.19.2 graphql@15.5.0
+```
+
+now run docker-compose up and you should not get any more errors
+now if you to got localhost:7000/graphql, you will get the graphql playground:
+
+![alt graphql](images/038-graphql.png)
