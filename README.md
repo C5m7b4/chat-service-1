@@ -1744,5 +1744,196 @@ now we'll notice that our graphql query will not longer work, so we need to modi
 
 ![alt query-bob](images/055-query-bob.png)
 
+## branch 14 Video 11 in series
 
+let's start to flesh out the frontend, because up until now we have only focused on backend stuff
+so let's create a new folder called chat-app and cd into that directory and initialize it
 
+```js
+yarn init -y
+```
+
+then let's update the package.json
+
+```js
+{
+  "name": "microservices-chat-app",
+  "version": "1.0.0",
+  "main": "src/index.html",
+  "license": "MIT"
+}
+```
+
+now let's start to add some dependencies to this project
+
+```js
+yarn add -D parcel-bundler
+```
+
+now we are going to get a git warning that shit is too big so let's create a .gitignore file
+
+```js
+npx gitignore node
+```
+
+then let's add our tsconfig.json file
+
+```js
+{
+  "compilerOptions": {
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx":"react",
+    "module": "CommonJS",
+    "paths":{
+      "#root/*":["./src/*"]
+    },
+    "skipLibCheck": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "target": "es5"
+  }
+}
+```
+
+now let's add some scripts to the package.json
+
+```js
+  "scripts":{
+    "watch": "parcel src/index.html --port=7001"
+  },
+```
+
+now we are going to create our src/index.html file
+
+```js
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="./index.tsx"></script>
+</body>
+</html>
+```
+
+then we will add index.tsx inside of the src folder
+
+```js
+import React from 'react';
+import { render } from 'react-dom';
+
+render(<h1>working</h1>, document.getElementById('app'));
+
+```
+
+we are getting errors, so let's install our dependencies. be carefull here, because I really don't want react version 18 just yet
+
+```js
+yarn add react@17.0.1 react-dom@17.0.1
+yarn add -D @types/react@17.0.3 @types/react-dom@17.0.2 typescript
+```
+
+now we should be able to run 
+
+```js
+yarn watch
+```
+
+and our app should load up in the browser @ http://localhost:7001
+
+let's add some more dependencies
+
+```js
+yarn add @blueprintjs/core normalize.css
+```
+
+blueprintjs can be found [here](https://blueprintjs.com/)
+
+now in our index.tsx add these two import at the top of the file
+
+```js
+import "@blueprintjs/core/lib/css/blueprint.css"
+import "normalize.css/normalize.css"
+```
+
+now create a components folder inside of src and create a Root.tsx file as well as an index.ts file
+add this to the index.ts file
+
+```js
+export { default } from './Root';
+```
+
+now in the Root.tsx file make it look like this:
+
+```js
+import React from 'react';
+
+const Root = () => {
+  return <h1>Root</h1>;
+};
+
+export default Root;
+
+```
+
+if you are getting an error here, it is becuase you do not have this setting in your tsconfig.json
+
+```js
+"esModuleInterop": true,
+```
+
+now make the base index.tsx file look like this:
+
+```js
+import '@blueprintjs/core/lib/css/blueprint.css';
+import 'normalize.css/normalize.css';
+import React from 'react';
+import { render } from 'react-dom';
+
+import Root from './components/Root';
+
+render(<Root />, document.getElementById('app'));
+
+```
+
+now we'll add the blueprint icons
+
+```js
+yarn add @blueprintjs/icons
+```
+
+then add the import into the index.tsx
+
+```js
+import '@blueprintjs/icons/lib/css/blueprint-icons.css';
+```
+
+now let's update our Root.tsx file
+
+```js
+import React from 'react';
+import { Button, Intent } from '@blueprintjs/core';
+
+const Root = () => {
+  return (
+    <div>
+      <Button intent={Intent.SUCCESS}>Click Me</Button>
+    </div>
+  );
+};
+
+export default Root;
+
+```
+
+and then we can run yarn watch once again
+
+now we have our basic react application up and running
