@@ -1483,3 +1483,149 @@ now if we refresh the graphql playground and make it look like this,we should be
 
 ![alt graph-user](images/044-graph-user.png)
 
+## branch 11 Video 9 of series
+
+let's finish our schema.ts we need to be able to create a user session and a user
+
+if we go into our schema.ts file we can add a mutation
+
+```js
+  type Mutation {
+    createUser(password: String!, username: String!): User!
+  }
+```
+
+now open resolvers/index.ts and update it like this:
+
+```js
+import * as Mutation from './Mutation';
+import * as Query from './Query';
+import UserSession from './UserSession';
+
+const resolvers = { Mutation, Query, UserSession };
+
+export default resolvers;
+
+```
+
+now create a folder inside of resolvers called Mutation and add an index.ts file
+
+```js
+export {default as createUser} from "./createUser"
+```
+
+now let's create a file inside of the Mutaion folder called createUser.ts
+
+```js
+import UserService from '#root/adapters/UsersService';
+
+interface Args {
+  password: string;
+  username: string;
+}
+
+const createUserResolver = async (obj: any, { password, username }: Args) => {
+  return await UserService.createUser({ password, username });
+};
+
+export default createUserResolver;
+
+```
+
+now inside of adapters/UsersService, let's add another method to the class
+
+```js
+  static async createUser({
+    password,
+    username,
+  }: {
+    password: string;
+    username: string;
+  }) {
+    const body = await got
+      .post(`${USERS_SERVICE_URI}/users`, { json: { password, username } })
+      .json();
+    return body;
+  }
+```
+
+now let's do a docker-compose up and wait for that to launch
+
+now let's refresh our grahpql playground and run this mutation
+
+![alt graph-user](images/045-graph-user.png)
+
+now if we go back over to the database, we should see bob
+
+![alt bob-user](images/046-bob-user.png)
+
+now let's go back into the schema file and add another mutation
+
+```js
+createUserSession(password: String!, username: String!): UserSession!
+```
+
+under the mutations folder, create a file called createUserSession.ts
+also add this to the Mutation/index.ts file
+
+```js
+export {default as createUserSession} from './createUserSession'
+```
+
+createUserSession.ts
+
+```js
+import UserService from '#root/adapters/UsersService';
+import { ResolverContext } from '#root/graphql/types';
+
+interface Args {
+  password: string;
+  username: string;
+}
+
+const createUserSessionResolver = async (
+  obj: any,
+  { password, username }: Args,
+  context: ResolverContext
+) => {
+  const userSession = await UserService.createUserSession({
+    password,
+    username,
+  });
+
+  context.res.cookie('userSessionId', userSession.id, { httpOnly: true });
+
+  return userSession;
+};
+
+export default createUserSessionResolver;
+
+```
+
+now go back into adapters/UsersService and add this method:
+
+```js
+  static async createUserSession({
+    password,
+    username,
+  }: {
+    password: string;
+    username: string;
+  }) {
+    const body = <UserSession>(
+      await got
+        .post(`${USERS_SERVICE_URI}/sessions`, { json: { password, username } })
+        .json()
+    );
+    return body;
+  }
+```
+
+now if we run docker-compose up and refresh the graphql playground we can run this mutation. Notice that we can see the cookie also:
+
+![alt user-session](images/047-user-session.png)
+
+then if we try to type the password incorrectly, you will see this responds well
+
+![alt bad-password](images/048-bad-password.png)
+
