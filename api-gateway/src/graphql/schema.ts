@@ -18,6 +18,7 @@ const schema = gql`
   type Mutation {
     createUser(password: String!, username: String!): User!
     createUserSession(password: String!, username: String!): UserSession!
+    deleteUserSession(me: Boolean!): Boolean!
   }
 
   type Query {
