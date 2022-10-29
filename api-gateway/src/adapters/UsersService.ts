@@ -6,7 +6,7 @@ const USERS_SERVICE_URI = <string>config.get('USERS_SERVICE_URI');
 export interface User {
   createdAt: string;
   id: string;
-  userId: string;
+  username: string;
 }
 
 export interface UserSession {
