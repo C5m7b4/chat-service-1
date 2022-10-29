@@ -1192,3 +1192,150 @@ now run docker-compose up and you should not get any more errors
 now if you to got localhost:7000/graphql, you will get the graphql playground:
 
 ![alt graphql](images/038-graphql.png)
+
+## branch 9 - video 7 of Series
+
+now go into src and create a folder called adapters with a file named UsersService.ts
+
+but first let's go into the default.ts and add this line
+
+```js
+export const USERS_SERVICE_URI = 'http://users-service:7101';
+```
+
+UsersService.ts
+
+```js
+import config from 'config';
+import got from 'got';
+
+const USERS_SERVICE_URI = <string>config.get('USERS_SERVICE_URI');
+
+export default class UsersService {
+  static async fetchUsersSession({ sessionId }: { sessionId: string }) {
+    const body = await got
+      .get(`${USERS_SERVICE_URI}/sessions/${sessionId}`)
+      .json();
+    return body;
+  }
+}
+```
+
+now go into server and create a middleware folder with a file named injectSession.ts
+
+```js
+import { NextFunction, Request, Response } from 'express';
+
+import UsersService from '#root/adapters/UsersService';
+
+const injectSession = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (req.cookies.userSessionId) {
+    const userSession = await UsersService.fetchUsersSession({
+      sessionId: req.cookies.userSessionId,
+    });
+
+    res.locals.userSession = userSession;
+  }
+
+  return next();
+};
+
+export default injectSession;
+
+```
+
+now in startServer.ts
+
+```js
+import injectSession from './middleware/injectSession';
+```
+
+now right above apolloServer.applyMiddleware add this line
+
+```js
+  app.use(injectSession)
+```
+
+now we can add a console.log to the injectSession just to check things out.
+run docker-compose up to get things started
+now we can run the Login endpoint in insomnia to get a session
+we are also going to have a specific version of got for this to work😡
+
+```js
+yarn add got@11.8.1
+```
+
+once you have things running, you can go back to localhost:7000/graphql and open up the developer tools and create a cookie
+
+![alt cookie](images/039-cookie.png)
+
+refresh the graphql playground and your console should show this:
+
+![alt session-log](images/040-session-log.png)
+
+now go into the resolvers folder and creat a new folder called Query with an index.ts file inside it
+then in resolvers/index.ts add this line
+
+```js
+import * as Query from './Query';
+
+const resolvers = { Query };
+
+export default resolvers;
+```
+
+Query/index.ts
+
+```js
+export {default as userSession} from './userSession';
+```
+
+now create another file inside of graphql called types.ts
+
+```js
+import { Request, Response } from 'express';
+
+export interface ResolverContext {
+  req: Request;
+  res: Response;
+}
+```
+
+now create another file inside the Query folder called userSession.ts
+
+```js
+import { ResolverContext } from '#root/graphql/types';
+
+interface Args {
+  me: boolean;
+}
+
+const userSessionResolver = async (
+  obj: any,
+  args: Args,
+  context: ResolverContext
+) => {
+  if (args.me !== true) throw new Error('Unsupported argument value');
+
+  return context.res.locals.userSession;
+};
+
+export default userSessionResolver;
+
+```
+
+you should see the service restart and be up and running to let's go and refresh the graphql playground
+
+![alt query](images/041-query.png)
+
+we get a null because we need to change one setting
+
+```js
+"request.credentials": "include",
+```  
+
+![alt good-graph](images/042-good-graph.png)
