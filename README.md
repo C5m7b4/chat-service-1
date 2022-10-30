@@ -2,6 +2,19 @@
 
 all of this work came from this [youtube playlist](https://www.youtube.com/watch?v=PUmXufS9y-8&list=PLnTRniWXnjf8QRhvnklsyapGfFZ6ACdSf&index=1)
 
+IN this repo we are going to build a microservices network using these technologies
+
+- Typescript
+- React
+- GraphQL
+- TypeOrm
+- Apollo Server
+- Recoil
+- MySql
+- Docker
+- docker-compose
+- phpmyadmin
+
 Here is what our folder structure is going to look like:
 
 ![alt folder-structure](images/01_folder_structure.png)
@@ -1937,3 +1950,150 @@ export default Root;
 and then we can run yarn watch once again
 
 now we have our basic react application up and running
+
+## branch 15 Video 12 of series
+
+firstly I noticed that the parcel cache was not being ignored by git so we need to update the .gitignore and add
+
+```js
+.cache
+```
+
+that should fix that problem.
+
+now let's add some more dependencies:
+
+```js
+yarn add -D @types/node @types/styled-components
+yarn add @apollo/client@3.3.19 graphql@15.5.0 styled-components
+```
+
+now let's add an alias to the package.json
+
+```js
+  "alias":{
+    "#root":"./src"
+  }
+```
+
+now in the src folder, let's create a file called .env.example
+
+```js
+API_GATEWAY_URI=http://localhost:7000
+```
+
+then add another file called .env
+
+```js
+API_GATEWAY_URI=http://localhost:7000
+```
+
+now in the src folder, create a folder called api and create a file called apolloClient.ts
+
+```js
+import {ApolloClient, InMemoryCache} from '@apollo/client'
+
+const apolloClient = new ApolloClient({
+  uri: `${process.env.API_GATEWAY_URI}/graphql`,
+  cache: new InMemoryCache(),
+  credentials: "include"
+})
+
+export default apolloClient;
+```
+
+ now we are going to add some state management using recoil
+
+ ```js
+yarn add recoil@0.3.1
+ ```
+
+now create a folder called recoil under the src folder
+then create a folder inside of there called atoms
+then create a file in there called userSession.ts
+
+```js
+import { atom } from 'recoil';
+
+const userSessionAtom = atom({
+  default: null,
+  key: 'userSession',
+});
+
+export default userSessionAtom;
+
+```
+
+now let's change our index.tsx to look like this:
+
+```js
+import { ApolloProvider } from '@apollo/client';
+import '@blueprintjs/core/lib/css/blueprint.css';
+import '@blueprintjs/icons/lib/css/blueprint-icons.css';
+import 'normalize.css/normalize.css';
+import React from 'react';
+import { render } from 'react-dom';
+import { RecoilRoot } from 'recoil';
+
+import apolloClient from '#root/api/apolloClient';
+import Root from './components/Root';
+
+render(
+  <ApolloProvider client={apolloClient}>
+    <RecoilRoot>
+      <Root />
+    </RecoilRoot>
+  </ApolloProvider>,
+  document.getElementById('app')
+);
+
+```
+
+now let's change our Root.tsx to look like this:
+
+```js
+import React from 'react';
+import { Spinner } from '@blueprintjs/core';
+
+const Root = () => {
+  return (
+    <div>
+      <Spinner />
+    </div>
+  );
+};
+
+export default Root;
+
+```
+
+re-run yarn watch and reload the page and we should just see a spinner
+
+now make the Root.tsx file look like this:
+
+```js
+import React from 'react';
+import { Spinner } from '@blueprintjs/core';
+import styled from 'styled-components';
+
+const SpinnerWrapper = styled.div`
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+`;
+
+const Root = () => {
+  return (
+    <SpinnerWrapper>
+      <Spinner />
+    </SpinnerWrapper>
+  );
+};
+
+export default Root;
+
+```
+
+now we should see a spinner that is in the middle of the page
+
