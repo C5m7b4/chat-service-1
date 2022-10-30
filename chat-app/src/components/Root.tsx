@@ -1,11 +1,19 @@
 import React from 'react';
-import { Button, Intent } from '@blueprintjs/core';
+import { Spinner } from '@blueprintjs/core';
+import styled from 'styled-components';
+
+const SpinnerWrapper = styled.div`
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+`;
 
 const Root = () => {
   return (
-    <div>
-      <Button intent={Intent.SUCCESS}>Click Me</Button>
-    </div>
+    <SpinnerWrapper>
+      <Spinner />
+    </SpinnerWrapper>
   );
 };
 
