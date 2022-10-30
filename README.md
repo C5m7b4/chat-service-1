@@ -2097,3 +2097,129 @@ export default Root;
 
 now we should see a spinner that is in the middle of the page
 
+## branch 16 - still on video 12
+
+now make your Root.tsx file look like this:
+
+```js
+import React, { useEffect } from 'react';
+import { Spinner } from '@blueprintjs/core';
+import styled from 'styled-components';
+import { gql } from '@apollo/client';
+import apolloClient from '#root/api/apolloClient';
+
+const SpinnerWrapper = styled.div`
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+`;
+
+const query = gql`
+  {
+    userSession(me: true) {
+      user {
+        username
+      }
+    }
+  }
+`;
+
+const Root = () => {
+  useEffect(() => {
+    apolloClient.query({ query }).then((res) => {
+      console.log('queryResponse', res);
+    });
+  }, []);
+
+  return (
+    <SpinnerWrapper>
+      <Spinner />
+    </SpinnerWrapper>
+  );
+};
+
+export default Root;
+
+```
+
+once you reload the browser and launch the chrome dev tools, you might get a message asking if you want to install the apollo dev tools.... why the hell not, right? get them [here](https://chrome.google.com/webstore/detail/apollo-client-devtools/jdkknkkbebbapilgoeccciglkfbmbnfm/related)
+
+re-run yarn watch and you may get and error, so that means that we need to also run docker-compose up so that our backend is available. Now if we refresh the website
+
+![alt compose-up](images/056-compose-up.png)
+
+![alt dev-inspect](images/057-dev-inspect.png)
+
+now let's import something else into the Root.tsx file
+
+```js
+import {useRecoilState} from 'recoil'
+import userSessionAtom from '#root/recoil/atoms/userSession';
+```
+
+then add this:
+
+```js
+  const [userSession, setUserSession] = useRecoilState(userSessionAtom);
+```
+
+now let's change our root.tsx file to look like this:
+
+```js
+import React, { useState, useEffect } from 'react';
+import { Spinner } from '@blueprintjs/core';
+import styled from 'styled-components';
+import { gql } from '@apollo/client';
+import apolloClient from '#root/api/apolloClient';
+import { useRecoilState } from 'recoil';
+import userSessionAtom from '#root/recoil/atoms/userSession';
+
+const SpinnerWrapper = styled.div`
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+`;
+
+const query = gql`
+  {
+    userSession(me: true) {
+      user {
+        username
+      }
+    }
+  }
+`;
+
+const Root = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [userSession, setUserSession] = useRecoilState(userSessionAtom);
+
+  useEffect(() => {
+    apolloClient.query({ query }).then((res) => {
+      const userSession = res.data?.userSession ?? null;
+
+      setUserSession(userSession);
+      setIsLoading(false);
+    });
+  }, []);
+
+  return isLoading ? (
+    <SpinnerWrapper>
+      <Spinner />
+    </SpinnerWrapper>
+  ) : (
+    <>
+      <pre>{JSON.stringify(userSession, null, 2)}</pre>
+    </>
+  );
+};
+
+export default Root;
+
+
+```
+
+now we have a more dynamic page with loading status
+
