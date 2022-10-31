@@ -2761,3 +2761,225 @@ export default Login;
 
 
 ```
+
+## branch 19 - Video 15 of series
+
+now let's create a folder under utils called hooks and under that a folder called forms and under that, create a file called useGeneratedId.ts
+
+```js
+import { useMemo } from "react";
+
+let seedCounter = 0;
+
+const useGeneratedId = () => {
+  const seed = useMemo(() => "id-" + seedCounter++, []);
+  return (suffix: string) => `${seed}-${suffix}`;
+};
+
+export default useGeneratedId;
+
+```
+
+then in Login.tsx add this import 
+
+```js
+import useGeneratedId from "#root/utils/hooks/forms/useGeneratedId";
+```
+
+then let's add this to the Login.tsx
+
+```js
+const generateId = useGeneratedId();
+```
+
+now let's up date our form
+
+```js
+    <Wrapper>
+      <Form>
+        <Card elevation={Elevation.TWO}>
+          <Heading>Chat App</Heading>
+          <LargeFormGroup label="Username" labelFor={generateId("username")}>
+            <InputGroup autoFocus id={generateId("username")} large />
+          </LargeFormGroup>
+          <LargeFormGroup label="Password" labelFor={generateId("password")}>
+            <InputGroup large type="password" id={generateId("password")} />
+          </LargeFormGroup>
+        </Card>
+      </Form>
+    </Wrapper>
+```
+
+what this allows us to do, is actually click on the label and have that focus on the input.
+
+now we are going to import this:
+
+```js
+import {useForm} from 'react-hook-form'
+```
+
+we could possible downgrade our versions
+
+```js
+yarn add @blueprintjs/core@3.41.0 @blueprintjs/icons@3.25.1
+```
+
+this still does not fix the error, so I used // @ts-ignore until I figure this out later 😡
+
+now let's add this:
+
+```js
+const {register} = useForm<FormData>();
+```
+
+and we will add this interface
+
+```js
+interface FormData {
+  password: string;
+  username: string
+}
+```
+
+now our form should look like this:
+
+```js
+        <Card elevation={Elevation.TWO}>
+          <Heading>Chat App</Heading>
+          <LargeFormGroup label="Username" labelFor={generateId("username")}>
+            <InputGroup autoFocus id={generateId("username")} large {...register("username")} />
+          </LargeFormGroup>
+          <LargeFormGroup label="Password" labelFor={generateId("password")}>
+            <InputGroup large type="password" id={generateId("password")} {...register("password")} />
+          </LargeFormGroup>
+        </Card>
+```
+
+now we are going to add handleSubmit to the useForm hook and change our form to look like this:
+
+```js
+ <Form onSubmit={handleSubmit(onSubmit)}>
+```
+
+then we will add the function
+
+```js
+  const onSubmit = ({ password, username }: FormData) => {
+    alert(`username is ${username} and password id ${password}`);
+  };
+```
+
+now let's add a submit button, but first we need to add Button and Intent to our imports list
+
+```js
+<Button intent={Intent.PRIMARY} large type="submit">
+  Login
+</Button>
+```
+
+!!!!! make sure that the form is using styled.form instead of styled.div !!!!!!
+
+for testing, we can add this:
+
+```js
+const { handleSubmit, register, watch } = useForm<FormData>();
+```
+
+and then add this:
+
+```js
+<pre>{JSON.stringify(watch(), null, 2)}</pre>
+```
+
+now as we type, we can see the form inputs:
+
+![alt form-inputs](images/066-form-inputs.png)
+
+our login form should now look like this:
+
+```js
+import {
+  Card,
+  Classes,
+  Elevation,
+  FormGroup,
+  InputGroup,
+  Intent,
+  Button,
+} from "@blueprintjs/core";
+import { useForm } from "react-hook-form";
+import styled from "styled-components";
+
+import useGeneratedId from "#root/utils/hooks/forms/useGeneratedId";
+
+interface FormData {
+  password: string;
+  username: string;
+}
+
+const Form = styled.form`
+  margin: auto;
+  width: 25rem;
+`;
+
+const Heading = styled.strong.attrs({ className: Classes.HEADING })`
+  display: block;
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+`;
+
+// @ts-ignore
+const LargeFormGroup = styled(FormGroup)`
+  .bp3-label {
+    font-size: 1rem;
+  }
+`;
+
+const Wrapper = styled.div`
+  display: flex;
+  height: 100%;
+  width: 100%;
+`;
+
+const Login = () => {
+  const { handleSubmit, register, watch } = useForm<FormData>();
+  const generateId = useGeneratedId();
+
+  const onSubmit = ({ password, username }: FormData) => {
+    alert(`username is ${username} and password id ${password}`);
+  };
+
+  return (
+    <Wrapper>
+      <Form onSubmit={handleSubmit(onSubmit)}>
+        <Card elevation={Elevation.TWO}>
+          <Heading>Chat App</Heading>
+          <LargeFormGroup label="Username" labelFor={generateId("username")}>
+            <InputGroup
+              autoFocus
+              id={generateId("username")}
+              large
+              {...register("username")}
+            />
+          </LargeFormGroup>
+          <LargeFormGroup label="Password" labelFor={generateId("password")}>
+            <InputGroup
+              large
+              type="password"
+              id={generateId("password")}
+              {...register("password")}
+            />
+          </LargeFormGroup>
+          <Button intent={Intent.PRIMARY} large type="submit">
+            Login
+          </Button>
+        </Card>
+        <pre>{JSON.stringify(watch(), null, 2)}</pre>
+      </Form>
+    </Wrapper>
+  );
+};
+
+export default Login;
+
+```
