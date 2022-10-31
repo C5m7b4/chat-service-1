@@ -2583,4 +2583,181 @@ export default Initialized;
 
 now if you try to visit localhost:7001/login, it redirects you back to main
 
+## branch 18 Video 14 of series
 
+now let's create a login page
+
+let's cd into the chat-app and run this:
+
+```js
+yarn add react-hook-form
+```
+
+let's run yarn watch in the chat-app folder and then go to the root and run docker-compose up so we can look at a few things. firstly you notice that when we load our chat-app, it's taking us to main. why is that? it should be taking us to the login, but notice that we actually have an actual session, so that it why we are going to main. Let's play that out:
+
+let's go to localhost:7000/graphql
+
+![alt login](images/059-login.png)
+
+if we run this, then we should see that we get directed to the main page
+
+![alt main](images/060-main.png)
+
+but if we run this mutation:
+
+![alt remove-session](images/061-remove-session.png)
+
+we should see that we get redirected to the login page
+
+that is not the case presently though, we are getting a lot of errors, and this is what we need to figure out.
+
+![alt lots-of-errors](images/062-lots-of-errors.png)
+
+found it!!!!!
+
+there is a small typo, so let's open up the initialise.tsx file and make the fix:
+
+```js
+      <PrivateRoute
+        allowVisit={!!userSession}
+        component={Main}
+        path="/"
+        redirectTo="/login"
+      />
+```
+
+make sure this redirectTo point to "/login"
+
+now we are set, lets go!!!
+
+![alt login](images/063-login.png)
+
+now let's go into Login.tsx and make it look like this:
+
+```js
+import styled from "styled-components";
+
+const Form = styled.div`
+  margin: auto;
+`;
+
+const Wrapper = styled.div`
+  display: flex;
+  height: 100%;
+  width: 100%;
+`;
+
+const Login = () => {
+  return (
+    <Wrapper>
+      <Form>login</Form>
+    </Wrapper>
+  );
+};
+
+export default Login;
+```
+
+now you should see login, but it should not be at the top:
+
+![alt login](images/064-login.png)
+
+so let's go into the the base index.tsx and add this import:
+
+```js
+import {createGlobalStyle} from 'styled-components'
+```
+
+then we are going to create this gloablstyle
+
+```js
+const GlobalStyle = createGlobalStyle`
+  html, body{
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body, #app{
+    height: 100%;
+    width: 100%;
+  }
+`;
+```
+
+now we just need to add this:
+
+```js
+render(
+  <ApolloProvider client={apolloClient}>
+    <RecoilRoot>
+      <BrowserRouter>
+        <GlobalStyle />
+        <Root />
+      </BrowserRouter>
+    </RecoilRoot>
+  </ApolloProvider>,
+  document.getElementById("app")
+);
+```
+
+now we should see this:
+
+![alt centered](images/065-centered.png)
+
+now our Login.tsx file should look like this:
+
+```js
+import {
+  Card,
+  Classes,
+  Elevation,
+  FormGroup,
+  InputGroup,
+} from "@blueprintjs/core";
+import styled from "styled-components";
+
+const Form = styled.div`
+  margin: auto;
+  width: 25rem;
+`;
+
+const Heading = styled.strong.attrs({ className: Classes.HEADING })`
+  display: block;
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+`;
+
+const LargeFormGroup = styled(FormGroup)`
+  .bp3-label {
+    font-size: 1rem;
+  }
+`;
+
+const Wrapper = styled.div`
+  display: flex;
+  height: 100%;
+  width: 100%;
+`;
+
+const Login = () => {
+  return (
+    <Wrapper>
+      <Form>
+        <Card elevation={Elevation.TWO}>
+          <Heading>Chat App</Heading>
+          <LargeFormGroup label="Username">
+            <InputGroup autoFocus large />
+          </LargeFormGroup>
+          <LargeFormGroup label="Password">
+            <InputGroup large type="password" />
+          </LargeFormGroup>
+        </Card>
+      </Form>
+    </Wrapper>
+  );
+};
+
+export default Login;
+
+
+```
