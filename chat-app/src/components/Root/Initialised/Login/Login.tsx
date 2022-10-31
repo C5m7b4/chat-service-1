@@ -1,3 +1,4 @@
+import { gql, useMutation } from "@apollo/client";
 import {
   Card,
   Classes,
@@ -8,9 +9,12 @@ import {
   Button,
 } from "@blueprintjs/core";
 import { useForm } from "react-hook-form";
+import { useRecoilState } from "recoil";
 import styled from "styled-components";
 
+import userSessionAtom from "#root/recoil/atoms/userSession";
 import useGeneratedId from "#root/utils/hooks/forms/useGeneratedId";
+import toaster from "#utils/misc/toaster";
 
 interface FormData {
   password: string;
@@ -41,12 +45,33 @@ const Wrapper = styled.div`
   width: 100%;
 `;
 
-const Login = () => {
-  const { handleSubmit, register, watch } = useForm<FormData>();
-  const generateId = useGeneratedId();
+const mutation = gql`
+  mutation ($password: String!, $username: String!) {
+    createUserSession(password: $password, username: $username) {
+      user {
+        username
+      }
+    }
+  }
+`;
 
-  const onSubmit = ({ password, username }: FormData) => {
-    alert(`username is ${username} and password id ${password}`);
+const Login = () => {
+  const { formState, handleSubmit, register, watch } = useForm<FormData>();
+  const [createUserSession] = useMutation(mutation);
+  const generateId = useGeneratedId();
+  const [, setUserSession] = useRecoilState(userSessionAtom);
+
+  const onSubmit = async ({ password, username }: FormData) => {
+    try {
+      const result = await createUserSession({
+        variables: { password, username },
+      });
+
+      if (result.data.createUserSession)
+        setUserSession(result.data.createUserSession);
+    } catch (error) {
+      toaster.show({ intent: Intent.DANGER, message: "Something went wrong" });
+    }
   };
 
   return (
@@ -57,6 +82,7 @@ const Login = () => {
           <LargeFormGroup label="Username" labelFor={generateId("username")}>
             <InputGroup
               autoFocus
+              disabled={formState.isSubmitting}
               id={generateId("username")}
               large
               {...register("username")}
@@ -65,12 +91,18 @@ const Login = () => {
           <LargeFormGroup label="Password" labelFor={generateId("password")}>
             <InputGroup
               large
+              disabled={formState.isSubmitting}
               type="password"
               id={generateId("password")}
               {...register("password")}
             />
           </LargeFormGroup>
-          <Button intent={Intent.PRIMARY} large type="submit">
+          <Button
+            intent={Intent.PRIMARY}
+            large
+            loading={formState.isSubmitting}
+            type="submit"
+          >
             Login
           </Button>
         </Card>
