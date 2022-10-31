@@ -23,12 +23,13 @@
     "normalize.css": "^8.0.1",
     "react": "17.0.1",
     "react-dom": "17.0.1",
+    "react-hook-form": "^7.38.0",
     "react-router-dom": "5.2.0",
     "recoil": "0.3.1",
     "styled-components": "^5.3.6"
   },
   "alias": {
     "#root": "./src",
-    "#utils":"./src/utils"
+    "#utils": "./src/utils"
   }
 }

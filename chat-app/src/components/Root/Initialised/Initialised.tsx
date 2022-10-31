@@ -21,7 +21,7 @@ const Initialized = () => {
         allowVisit={!!userSession}
         component={Main}
         path="/"
-        redirectTo="/"
+        redirectTo="/login"
       />
     </Switch>
   );
