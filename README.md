@@ -2223,3 +2223,364 @@ export default Root;
 
 now we have a more dynamic page with loading status
 
+## branch 17 - Video 13 of series
+
+we need to fix the routes in users-service/src/server/routes
+
+```js
+if (!userSession) return res.status(404).end();
+```
+
+now in api-gateway/src/adapters/UsersService, let's make this change
+
+```js
+  static async fetchUsersSession({
+    sessionId,
+  }: {
+    sessionId: string;
+  }): Promise<UserSession | null> {
+    const body = await got
+      .get(`${USERS_SERVICE_URI}/sessions/${sessionId}`)
+      .json().catch(err => {
+        if ( err.response.statusCode === 404) return null;
+        throw err
+      })
+    if (!body) return null;
+    return <UserSession>body;
+  }
+```
+
+now let's cd into the chat-app and add some dependencies
+
+```js
+yarn add react-router-dom@5.2.0
+yarn add -D @types/react-router-dom@5.1.7
+```
+
+now in package.json, we are going to update our alias
+
+```js
+  "alias": {
+    "#root": "./src",
+    "#utils":"./src/utils"
+  }
+```
+
+now inside of componenets, create a folder called Initialised and create a file inside of there called Initialised.tsx
+but first go into tsconfig.json and change react to react-jsx
+
+```js
+    "jsx":"react-jsx",
+```
+
+!!!!!!!!!!!!!! this is good !!!!!!!!!!
+now we can remove the react import in Root.tsx
+
+then we are going to update our paths in tsconfig.json
+
+```js
+    "paths":{
+      "#root/*":["./src/*"],
+      "#utils/*": ["./src/utils/*"]
+    },
+```
+
+Initialised.tsx
+
+```js
+const Initialized = () => {
+  return <h1>Initialised</h1>;
+};
+
+export default Initialised;
+
+```
+
+we also need a file inside of the initialised folder call index.ts
+
+```js
+export {default} from './Initialised'
+```
+
+and now import this into Root.tsx and update Root.tsx
+
+```js
+import { useState, useEffect } from "react";
+import { Spinner } from "@blueprintjs/core";
+import styled from "styled-components";
+import { gql } from "@apollo/client";
+import apolloClient from "#root/api/apolloClient";
+import { useRecoilState } from "recoil";
+import userSessionAtom from "#root/recoil/atoms/userSession";
+import Initialized from "./Initialized";
+
+const SpinnerWrapper = styled.div`
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+`;
+
+const query = gql`
+  {
+    userSession(me: true) {
+      user {
+        username
+      }
+    }
+  }
+`;
+
+const Root = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [userSession, setUserSession] = useRecoilState(userSessionAtom);
+
+  useEffect(() => {
+    apolloClient.query({ query }).then((res) => {
+      const userSession = res.data?.userSession ?? null;
+
+      setUserSession(userSession);
+      setIsLoading(false);
+    });
+  }, []);
+
+  return isLoading ? (
+    <SpinnerWrapper>
+      <Spinner />
+    </SpinnerWrapper>
+  ) : (
+    <>
+      <Initialized />
+    </>
+  );
+};
+
+export default Root;
+
+```
+
+then in initialized folder add an index.ts
+
+```js
+export { default } from "./Initialized";
+
+```
+
+run yarn watch and make sure everything is still working
+
+![alt inititialized](images/058-initialized.png)
+
+now lets create two folders inside of the Initialized folder called Login and Main
+
+inside of login, create two files: Login.tsx and index.ts
+
+index.ts
+
+```js
+export {default} from './Login'
+```
+
+Login.tsx
+
+```js
+const Login = () => {
+  return <h1>Login</h1>
+}
+
+export default Login
+```
+
+inside of main, create two files: Main.tsx and index.ts
+
+Main.tsx
+
+```js
+const Main = () => {
+  return <h1>Main</h1>;
+};
+
+export default Main;
+
+```
+
+Main/index.ts
+
+```js
+export { default } from "./Main";
+
+```
+
+update Initialized.tsx like so: 
+
+```js
+import { Route, Switch } from "react-router-dom";
+import Login from "./Login";
+import Main from "./Main";
+
+const Initialized = () => {
+  return (
+    <Switch>
+      <Route component={Login} path="/login" />
+      <Route component={Main} path="/" />
+    </Switch>
+  );
+};
+
+export default Initialized;
+
+```
+
+now let's restructure a bit,  inside of components, create a folder called Root and put Root.tsx and that index.ts inside of that. the put the initialized folder inside of Root folder.
+
+now update the index.tsx in the root to look like this:
+
+```js
+import { ApolloProvider } from "@apollo/client";
+import "@blueprintjs/core/lib/css/blueprint.css";
+import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+import "normalize.css/normalize.css";
+import { BrowserRouter } from "react-router-dom";
+import { render } from "react-dom";
+import { RecoilRoot } from "recoil";
+
+import apolloClient from "#root/api/apolloClient";
+import Root from "#root/components/Root";
+
+render(
+  <ApolloProvider client={apolloClient}>
+    <RecoilRoot>
+      <BrowserRouter>
+        <Root />
+      </BrowserRouter>
+    </RecoilRoot>
+  </ApolloProvider>,
+  document.getElementById("app")
+);
+
+```
+
+now our page should default to the Main.tsx file
+we may be getting an error highlited on the BrowserRouter, but we will come back to that
+
+now inside of src, create a folder called utils and inside of that create a folder called components and inside of that create a folder called routing  and inside of that create a folder called PrivateRoute and inside of that create a file called PrivateRoute.tsx
+
+and we'll create an index.ts inside of that
+index.ts
+
+```js
+export {default} from './PrivateRoute
+```
+
+this one is going to be a bit of a crazy file so bear with
+PrivateRoute.tsx
+
+```js
+import { ComponentType, FC, ReactElement } from "react";
+import {
+  Redirect,
+  Route,
+  RouteComponentProps,
+  RouteProps,
+} from "react-router-dom";
+
+interface CommonProps extends RouteProps {
+  allowVisit: boolean;
+  redirectTo: string;
+}
+
+type Props =
+  | ({
+      component: ComponentType<RouteComponentProps>;
+    } & CommonProps)
+  | ({
+      render: (props: RouteComponentProps) => ReactElement;
+    } & CommonProps);
+
+const PrivateRoute: FC<Props> = ({
+  allowVisit,
+  component: Component,
+  redirectTo,
+  render,
+  ...rest
+}) => {
+  // @ts-ignore
+  const renderedComponent = Component
+    ? // @ts-ignore
+      (props: RouteComponentProps) => <Component {...props} />
+    : render!;
+
+  return (
+    <Route
+      {...rest}
+      render={(props) =>
+        allowVisit ? (
+          renderedComponent(props)
+        ) : (
+          <Redirect
+            to={{ pathname: redirectTo, state: { from: props.location } }}
+          />
+        )
+      }
+    />
+  );
+};
+
+export default PrivateRoute;
+
+```
+
+now go into initialise.tsx and add the import 
+
+```js
+import { Route, Switch } from "react-router-dom";
+import { useRecoilState } from "recoil";
+
+import userSessionAtom from "#root/recoil/atoms/userSession";
+import PrivateRoute from "#root/utils/components/routing/PrivateRoute";
+````
+
+we are also going to need to add this:
+
+```js
+const [userSession] = useRecoilState(userSessionAtom);
+```
+
+now Initialise should look like this:
+
+```js
+import { Switch } from "react-router-dom";
+import { useRecoilState } from "recoil";
+
+import userSessionAtom from "#root/recoil/atoms/userSession";
+import PrivateRoute from "#root/utils/components/routing/PrivateRoute";
+
+import Login from "./Login";
+import Main from "./Main";
+
+const Initialized = () => {
+  const [userSession] = useRecoilState(userSessionAtom);
+  return (
+    <Switch>
+      <PrivateRoute
+        allowVisit={!userSession}
+        component={Login}
+        path="/login"
+        redirectTo="/"
+      />
+      <PrivateRoute
+        allowVisit={!!userSession}
+        component={Main}
+        path="/"
+        redirectTo="/"
+      />
+    </Switch>
+  );
+};
+
+export default Initialized;
+
+```
+
+now if you try to visit localhost:7001/login, it redirects you back to main
+
+

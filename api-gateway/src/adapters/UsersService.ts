@@ -65,7 +65,11 @@ export default class UsersService {
   }): Promise<UserSession | null> {
     const body = await got
       .get(`${USERS_SERVICE_URI}/sessions/${sessionId}`)
-      .json();
+      .json()
+      .catch((err) => {
+        if (err.response.statusCode === 404) return null;
+        throw err;
+      });
     if (!body) return null;
     return <UserSession>body;
   }
