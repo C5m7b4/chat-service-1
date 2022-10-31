@@ -2983,3 +2983,189 @@ const Login = () => {
 export default Login;
 
 ```
+
+## branch 20
+
+let's add some more imports
+
+```js
+import { gql, useMutation } from "@apollo/client";
+```
+
+now let's add our mutation:
+
+```js
+const mutation = gql`
+  mutation($password: String!, $username: String!) {
+    createUserSession(password: $password, username: $username) {
+      user {
+        username
+      }
+    }
+  }
+`;
+```
+
+now let's add the hook for this
+
+```js
+  const [createUserSession] = useMutation(mutation);
+```
+
+now let's change our onSubmit function to look like this:
+
+```js
+  const onSubmit = async ({ password, username }: FormData) => {
+    const result = await createUserSession({
+      variables: { password, username },
+    });
+
+    console.log(result);
+  };
+```
+
+and this is what we expect:
+
+![alt result](images/067-result.png)
+
+now if we refresh the page, we will get redirected to the main instead of the login, but we can log ourselves back out like this:
+
+![alt logout](images/068-logout.png)
+
+now let's go into utils and add a misc folder with a file called toaster.ts
+
+```js
+import { Position, Toaster } from "@blueprintjs/core";
+
+const toaster = Toaster.create({
+  position: Position.TOP,
+});
+
+export default toaster;
+
+```
+
+now let's import our new toaster into Login.tsx
+
+```js
+import toaster from "#utils/misc/toaster";
+```
+
+then let's change our onSubmit function
+
+```js
+  const onSubmit = async ({ password, username }: FormData) => {
+    try {
+      const result = await createUserSession({
+        variables: { password, username },
+      });
+    } catch (error) {
+      toaster.show({ intent: Intent.DANGER, message: "Something went wrong" });
+    }
+  };
+```
+
+and now we should be getting toasts when our login fails:
+
+![alt login-failed](images/069-login-failed.png)
+
+now we are going to add some more imports
+
+```js
+import {useRecoilState} from 'recoil'
+import userSessionAtom from '#root/recoil/atoms/userSession'
+```
+
+now add some more state
+
+```js
+  const [, setUserSession] = useRecoilState(userSessionAtom);
+```
+
+now let's update our onSubmit like so:
+
+```js
+  const onSubmit = async ({ password, username }: FormData) => {
+    try {
+      const result = await createUserSession({
+        variables: { password, username },
+      });
+
+      if (result.data.createUserSession)
+        setUserSession(result.data.createUserSession);
+    } catch (error) {
+      toaster.show({ intent: Intent.DANGER, message: "Something went wrong" });
+    }
+  };
+```
+
+now when we login, we are already redirected to the main
+
+---------
+
+now let's add some more state
+
+```js
+const { formState, handleSubmit, register, watch } = useForm<FormData>();
+```
+
+then add this line to our inputs
+
+```js
+disabled={formState.isSubmitting}
+```
+
+and update our Button:
+
+```js
+<Button intent={Intent.PRIMARY} large loading={formState.isSubmitting} type="submit">
+```
+
+so our form should look like this:
+
+```js
+<Form onSubmit={handleSubmit(onSubmit)}>
+        <Card elevation={Elevation.TWO}>
+          <Heading>Chat App</Heading>
+          <LargeFormGroup label="Username" labelFor={generateId("username")}>
+            <InputGroup
+              autoFocus
+              disabled={formState.isSubmitting}
+              id={generateId("username")}
+              large
+              {...register("username")}
+            />
+          </LargeFormGroup>
+          <LargeFormGroup label="Password" labelFor={generateId("password")}>
+            <InputGroup
+              large
+              disabled={formState.isSubmitting}
+              type="password"
+              id={generateId("password")}
+              {...register("password")}
+            />
+          </LargeFormGroup>
+          <Button intent={Intent.PRIMARY} large loading={formState.isSubmitting} type="submit">
+            Login
+          </Button>
+        </Card>
+        <pre>{JSON.stringify(watch(), null, 2)}</pre>
+      </Form>
+```
+
+and we are going to add this to our onSubmit:
+
+```js
+await new Promise(() => {});
+```
+
+so let's logout by using this:
+
+![alt logout](images/070-logout.png)
+
+and now when we press the login button, we should get a spinner:
+
+![alt spinner](images/071-spinner.png)
+
+now we can get rid of our empty promise
+
